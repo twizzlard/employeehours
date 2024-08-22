@@ -1,8 +1,4 @@
 streamlit
-pdfminer==20191125
-pdf2image
-pytesseract
 pandas
-pdfplumber==0.7.6
-pdfminer.six==20221105
-wand
+PyPDF2
+camelot-py[cv]
