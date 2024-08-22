@@ -19,9 +19,6 @@ st.markdown("""
 """)
 languages = {
     'English': 'eng',
-    'French': 'fra',
-    'Arabic': 'ara',
-    'Spanish': 'spa',
 }
 
 with st.sidebar:
@@ -37,14 +34,8 @@ with st.sidebar:
     Simply load your PDF and convert it to single-page or multi-page text.
     """)
     st.markdown(html_temp.format("rgba(55, 53, 47, 0.16)"), unsafe_allow_html=True)
-    st.markdown("""
-    Made by [@nainia_ayoub](https://twitter.com/nainia_ayoub) 
-    """)
     st.markdown(
         """
-        <a href="https://www.buymeacoffee.com/nainiayoub" target="_blank">
-        <img src="https://cdn.buymeacoffee.com/buttons/default-orange.png" alt="Buy Me A Coffee" height="41" width="174">
-        </a>
         """,
         unsafe_allow_html=True,
     )
@@ -133,36 +124,4 @@ if pdf_file:
                 st.info(text)
         st.download_button("Download txt file", text)
 
-    st.markdown('''
-    <a target="_blank" style="color: black" href="https://twitter.com/intent/tweet?text=You%20can%20extract%20text%20from%20your%20PDF%20using%20this%20PDF%20to%20Text%20streamlit%20app%20by%20@nainia_ayoub!%0A%0Ahttps://nainiayoub-pdf-text-data-extractor-app-p6hy0z.streamlit.app/">
-        <button class="btn">
-            Spread the word!
-        </button>
-    </a>
-    <style>
-    .btn{
-        display: inline-flex;
-        -moz-box-align: center;
-        align-items: center;
-        -moz-box-pack: center;
-        justify-content: center;
-        font-weight: 400;
-        padding: 0.25rem 0.75rem;
-        border-radius: 0.25rem;
-        margin: 0px;
-        line-height: 1.6;
-        color: rgb(49, 51, 63);
-        background-color: #fff;
-        width: auto;
-        user-select: none;
-        border: 1px solid rgba(49, 51, 63, 0.2);
-        }
-    .btn:hover{
-        color: #00acee;
-        background-color: #fff;
-        border: 1px solid #00acee;
-    }
-    </style>
-    ''',
-    unsafe_allow_html=True
-    )
+    
