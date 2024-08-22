@@ -1,127 +1,80 @@
 import streamlit as st
-import pdf2image
-from PIL import Image
+import pdfplumber
 import pytesseract
-from pytesseract import Output, TesseractError
+from PIL import Image
 import pandas as pd
-from functions import convert_pdf_to_txt_pages, convert_pdf_to_txt_file, save_pages, displayPDF, images_to_txt
+from io import BytesIO
 
-st.set_page_config(page_title="PDF to Text")
-
-html_temp = """
-            <div style="background-color:{};padding:1px">
-            
-            </div>
-            """
+st.set_page_config(page_title="PDF Table Extractor")
 
 st.markdown("""
-    ## Text data extractor: PDF to Text
+    ## Extract Tables from PDF
+    Upload a PDF to extract tables and display them as a DataFrame.
 """)
-languages = {
-    'English': 'eng',
-}
 
-with st.sidebar:
-    st.title(":outbox_tray: PDF to Text")
-    textOutput = st.selectbox(
-        "How do you want your output text?",
-        ('One text file (.txt)', 'Text file per page (ZIP)', 'Display as DataFrame'))
-    ocr_box = st.checkbox('Enable OCR (scanned document)')
-    
-    st.markdown(html_temp.format("rgba(55, 53, 47, 0.16)"), unsafe_allow_html=True)
-    st.markdown("""
-    # How does it work?
-    Simply load your PDF and convert it to single-page or multi-page text.
-    """)
-    st.markdown(html_temp.format("rgba(55, 53, 47, 0.16)"), unsafe_allow_html=True)
-    st.markdown(
-        """
-        """,
-        unsafe_allow_html=True,
-    )
-    
-pdf_file = st.file_uploader("Load your PDF", type=['pdf', 'png', 'jpg'])
-hide="""
+ocr_enabled = st.checkbox('Enable OCR for scanned documents')
+pdf_file = st.file_uploader("Load your PDF", type=['pdf'])
+
+hide = """
 <style>
-footer{
+footer {
     visibility: hidden;
     position: relative;
 }
-.viewerBadge_container__1QSob{
+.viewerBadge_container__1QSob {
     visibility: hidden;
 }
-#MainMenu{
+#MainMenu {
     visibility: hidden;
 }
-<style>
+</style>
 """
 st.markdown(hide, unsafe_allow_html=True)
-if pdf_file:
-    path = pdf_file.read()
-    file_extension = pdf_file.name.split(".")[-1]
-    
-    if file_extension == "pdf":
-        # display document
-        with st.expander("Display document"):
-            displayPDF(path)
-        if ocr_box:
-            option = st.selectbox('Select the document language', list(languages.keys()))
-        # pdf to text
-        if textOutput == 'One text file (.txt)':
-            if ocr_box:
-                texts, nbPages = images_to_txt(path, languages[option])
-                totalPages = "Pages: " + str(nbPages) + " in total"
-                text_data_f = "\n\n".join(texts)
-            else:
-                text_data_f, nbPages = convert_pdf_to_txt_file(pdf_file)
-                totalPages = "Pages: " + str(nbPages) + " in total"
 
-            st.info(totalPages)
-            st.download_button("Download txt file", text_data_f)
-            
-        elif textOutput == 'Text file per page (ZIP)':
-            if ocr_box:
-                text_data, nbPages = images_to_txt(path, languages[option])
-                totalPages = "Pages: " + str(nbPages) + " in total"
-            else:
-                text_data, nbPages = convert_pdf_to_txt_pages(pdf_file)
-                totalPages = "Pages: " + str(nbPages) + " in total"
-            st.info(totalPages)
-            zipPath = save_pages(text_data)
-            # download text data   
-            with open(zipPath, "rb") as fp:
-                btn = st.download_button(
-                    label="Download ZIP (txt)",
-                    data=fp,
-                    file_name="pdf_to_txt.zip",
-                    mime="application/zip"
-                )
-                
-        elif textOutput == 'Display as DataFrame':
-            if ocr_box:
-                texts, nbPages = images_to_txt(path, languages[option])
-                totalPages = "Pages: " + str(nbPages) + " in total"
-                df = pd.DataFrame({'Page': range(1, nbPages + 1), 'Text': texts})
-            else:
-                text_data, nbPages = convert_pdf_to_txt_pages(pdf_file)
-                totalPages = "Pages: " + str(nbPages) + " in total"
-                df = pd.DataFrame({'Page': range(1, nbPages + 1), 'Text': text_data})
+def ocr_image(image):
+    return pytesseract.image_to_string(image)
 
-            st.info(totalPages)
-            st.write(df)  # Display DataFrame
-            st.download_button("Download DataFrame as CSV", df.to_csv(index=False), "pdf_text_data.csv", "text/csv")
-    
+def extract_text_from_page(page):
+    if page.extract_text():
+        return page.extract_text()
     else:
-        option = st.selectbox("What's the language of the text in the image?", list(languages.keys()))
-        pil_image = Image.open(pdf_file)
-        text = pytesseract.image_to_string(pil_image, lang=languages[option])
-        col1, col2 = st.columns(2)
-        with col1:
-            with st.expander("Display Image"):
-                st.image(pdf_file)
-        with col2:
-            with st.expander("Display Text"):
-                st.info(text)
-        st.download_button("Download txt file", text)
+        img = page.to_image()
+        return ocr_image(img.original)
 
+if pdf_file:
+    all_tables = []
+
+    with pdfplumber.open(pdf_file) as pdf:
+        for page_num, page in enumerate(pdf.pages):
+            if ocr_enabled and not page.extract_text():
+                # For OCR-enabled documents, extract text using OCR if needed
+                page_text = extract_text_from_page(page)
+                # Split page_text into lines
+                lines = page_text.split('\n')
+                # Assuming table extraction on raw text here for simplicity
+                # If the text contains structured data, you need to parse it accordingly
+                data = [line.split() for line in lines]
+                if data:
+                    df = pd.DataFrame(data)
+                    df['Page'] = page_num + 1
+                    all_tables.append(df)
+            else:
+                tables = page.extract_tables()
+                for table in tables:
+                    df = pd.DataFrame(table[1:], columns=table[0])
+                    df['Page'] = page_num + 1
+                    all_tables.append(df)
     
+    if all_tables:
+        combined_df = pd.concat(all_tables, ignore_index=True)
+        st.write(combined_df)
+        
+        csv = combined_df.to_csv(index=False)
+        st.download_button(
+            label="Download DataFrame as CSV",
+            data=csv,
+            file_name="pdf_table_data.csv",
+            mime="text/csv"
+        )
+    else:
+        st.info("No tables found in the PDF.")
