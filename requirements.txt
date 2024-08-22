@@ -3,5 +3,5 @@ pdfminer==20191125
 pdf2image
 pytesseract
 pandas
-pdfplumber
-pdfminer.six
+pdfplumber==0.7.6
+pdfminer.six==20201018
