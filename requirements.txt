@@ -4,4 +4,4 @@ pdf2image
 pytesseract
 pandas
 pdfplumber==0.7.6
-pdfminer.six==20201018
+pdfminer.six==20221105
