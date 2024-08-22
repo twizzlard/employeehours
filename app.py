@@ -10,6 +10,7 @@ st.set_page_config(page_title="PDF Table Extractor")
 st.markdown("""
     ## Extract Tables from PDF
     Upload a PDF to extract tables and display them as a DataFrame.
+    Optionally enable OCR for scanned documents.
 """)
 
 ocr_enabled = st.checkbox('Enable OCR for scanned documents')
@@ -46,7 +47,7 @@ if pdf_file:
 
     with pdfplumber.open(pdf_file) as pdf:
         for page_num, page in enumerate(pdf.pages):
-            if ocr_enabled and not page.extract_text():
+            if ocr_enabled:
                 # For OCR-enabled documents, extract text using OCR if needed
                 page_text = extract_text_from_page(page)
                 # Split page_text into lines
