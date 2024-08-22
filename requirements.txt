@@ -4,3 +4,4 @@ pdf2image
 pytesseract
 pandas
 pdfplumber
+pdfminer.six
