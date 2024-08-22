@@ -3,10 +3,10 @@ import pdf2image
 from PIL import Image
 import pytesseract
 from pytesseract import Output, TesseractError
+import pandas as pd
 from functions import convert_pdf_to_txt_pages, convert_pdf_to_txt_file, save_pages, displayPDF, images_to_txt
 
 st.set_page_config(page_title="PDF to Text")
-
 
 html_temp = """
             <div style="background-color:{};padding:1px">
@@ -14,14 +14,8 @@ html_temp = """
             </div>
             """
 
-# st.markdown("""
-#     ## :outbox_tray: Text data extractor: PDF to Text
-    
-# """)
-# st.markdown(html_temp.format("rgba(55, 53, 47, 0.16)"),unsafe_allow_html=True)
 st.markdown("""
     ## Text data extractor: PDF to Text
-    
 """)
 languages = {
     'English': 'eng',
@@ -34,15 +28,15 @@ with st.sidebar:
     st.title(":outbox_tray: PDF to Text")
     textOutput = st.selectbox(
         "How do you want your output text?",
-        ('One text file (.txt)', 'Text file per page (ZIP)'))
+        ('One text file (.txt)', 'Text file per page (ZIP)', 'Display as DataFrame'))
     ocr_box = st.checkbox('Enable OCR (scanned document)')
     
-    st.markdown(html_temp.format("rgba(55, 53, 47, 0.16)"),unsafe_allow_html=True)
+    st.markdown(html_temp.format("rgba(55, 53, 47, 0.16)"), unsafe_allow_html=True)
     st.markdown("""
     # How does it work?
     Simply load your PDF and convert it to single-page or multi-page text.
     """)
-    st.markdown(html_temp.format("rgba(55, 53, 47, 0.16)"),unsafe_allow_html=True)
+    st.markdown(html_temp.format("rgba(55, 53, 47, 0.16)"), unsafe_allow_html=True)
     st.markdown("""
     Made by [@nainia_ayoub](https://twitter.com/nainia_ayoub) 
     """)
@@ -55,19 +49,18 @@ with st.sidebar:
         unsafe_allow_html=True,
     )
     
-
 pdf_file = st.file_uploader("Load your PDF", type=['pdf', 'png', 'jpg'])
 hide="""
 <style>
 footer{
-	visibility: hidden;
-    	position: relative;
+    visibility: hidden;
+    position: relative;
 }
 .viewerBadge_container__1QSob{
-  	visibility: hidden;
+    visibility: hidden;
 }
 #MainMenu{
-	visibility: hidden;
+    visibility: hidden;
 }
 <style>
 """
@@ -86,21 +79,22 @@ if pdf_file:
         if textOutput == 'One text file (.txt)':
             if ocr_box:
                 texts, nbPages = images_to_txt(path, languages[option])
-                totalPages = "Pages: "+str(nbPages)+" in total"
+                totalPages = "Pages: " + str(nbPages) + " in total"
                 text_data_f = "\n\n".join(texts)
             else:
                 text_data_f, nbPages = convert_pdf_to_txt_file(pdf_file)
-                totalPages = "Pages: "+str(nbPages)+" in total"
+                totalPages = "Pages: " + str(nbPages) + " in total"
 
             st.info(totalPages)
             st.download_button("Download txt file", text_data_f)
-        else:
+            
+        elif textOutput == 'Text file per page (ZIP)':
             if ocr_box:
                 text_data, nbPages = images_to_txt(path, languages[option])
-                totalPages = "Pages: "+str(nbPages)+" in total"
+                totalPages = "Pages: " + str(nbPages) + " in total"
             else:
                 text_data, nbPages = convert_pdf_to_txt_pages(pdf_file)
-                totalPages = "Pages: "+str(nbPages)+" in total"
+                totalPages = "Pages: " + str(nbPages) + " in total"
             st.info(totalPages)
             zipPath = save_pages(text_data)
             # download text data   
@@ -111,6 +105,21 @@ if pdf_file:
                     file_name="pdf_to_txt.zip",
                     mime="application/zip"
                 )
+                
+        elif textOutput == 'Display as DataFrame':
+            if ocr_box:
+                texts, nbPages = images_to_txt(path, languages[option])
+                totalPages = "Pages: " + str(nbPages) + " in total"
+                df = pd.DataFrame({'Page': range(1, nbPages + 1), 'Text': texts})
+            else:
+                text_data, nbPages = convert_pdf_to_txt_pages(pdf_file)
+                totalPages = "Pages: " + str(nbPages) + " in total"
+                df = pd.DataFrame({'Page': range(1, nbPages + 1), 'Text': text_data})
+
+            st.info(totalPages)
+            st.write(df)  # Display DataFrame
+            st.download_button("Download DataFrame as CSV", df.to_csv(index=False), "pdf_text_data.csv", "text/csv")
+    
     else:
         option = st.selectbox("What's the language of the text in the image?", list(languages.keys()))
         pil_image = Image.open(pdf_file)
@@ -157,4 +166,3 @@ if pdf_file:
     ''',
     unsafe_allow_html=True
     )
-    
